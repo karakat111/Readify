@@ -1,52 +1,36 @@
-package src.models;
+package models;
 
-import jakarta.persistence.*;
-import java.util.List;
-
-@Entity
-@Table(name = "books")
 public class Book {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private String title;
-
-    @Column(nullable = false)
     private String author;
-
+    private Category category;
     private double price;
     private int stock;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
-
-    @OneToMany(mappedBy = "book")
-    private List<OrderItem> orderItems;
-
-    @OneToMany(mappedBy = "book")
-    private List<Reservation> reservations;
-
-    @OneToMany(mappedBy = "book")
-    private List<Rental> rentals;
+    public Book(Long id, String title, String author, Category category, double price, int stock) {
+        if(title == null || title.isBlank()) throw new IllegalArgumentException("Title is required");
+        if(price < 0 || stock < 0) throw new IllegalArgumentException("Price and stock cannot be negative");
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.category = category;
+        this.price = price;
+        this.stock = stock;
+    }
 
     public Long getId() { return id; }
-
     public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
     public String getAuthor() { return author; }
-    public void setAuthor(String author) { this.author = author; }
-
+    public Category getCategory() { return category; }
     public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
-
     public int getStock() { return stock; }
     public void setStock(int stock) { this.stock = stock; }
 
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
+    @Override
+    public String toString() {
+        return String.format("ID: %d | %s by %s | Category: %s | Price: %.2f | Stock: %d",
+                id, title, author, category.getName(), price, stock);
+    }
 }
+
