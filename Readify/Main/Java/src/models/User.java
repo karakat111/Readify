@@ -1,37 +1,35 @@
-package src.models;
+package models;
 
-import jakarta.persistence.*;
-import java.util.List;
-
-@Entity
-@Table(name = "users")
 public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String username;
+    private String role; // ADMIN, MANAGER, USER
 
-    @Column(nullable = false)
-    private String name;
+    public User() {}
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    public User(Long id, String username, String role) {
+        this.id = id;
+        this.username = username;
+        this.role = role.toUpperCase();
+    }
 
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders;
-
-    @OneToMany(mappedBy = "user")
-    private List<Reservation> reservations;
-
-    @OneToMany(mappedBy = "user")
-    private List<Rental> rentals;
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role.toUpperCase(); }
+
+
+    public boolean isAdminOrManager() { return role.equals("ADMIN") || role.equals("MANAGER"); }
+    public boolean canRent() { return role.equals("USER") || isAdminOrManager(); }
+    public boolean canReserve() { return role.equals("USER") || isAdminOrManager(); }
+
+    @Override
+    public String toString() {
+        return String.format("User ID:%d | %s | Role:%s", id, username, role);
+    }
 }
-
