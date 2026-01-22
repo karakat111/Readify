@@ -1,34 +1,21 @@
-package src.models;
+package models;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "order_items")
 public class OrderItem {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private Book book;
     private int quantity;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
-
-    @ManyToOne
-    @JoinColumn(name = "book_id", nullable = false)
-    private Book book;
-
-    public Long getId() { return id; }
-
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
-
-    public Order getOrder() { return order; }
-    public void setOrder(Order order) { this.order = order; }
+    public OrderItem(Book book, int quantity) {
+        if(book == null) throw new IllegalArgumentException("Book cannot be null");
+        if(quantity <= 0) throw new IllegalArgumentException("Quantity must be > 0");
+        this.book = book;
+        this.quantity = quantity;
+    }
 
     public Book getBook() { return book; }
-    public void setBook(Book book) { this.book = book; }
-}
+    public int getQuantity() { return quantity; }
 
+    @Override
+    public String toString() {
+        return String.format("%s x %d | Price: %.2f", book.getTitle(), quantity, book.getPrice());
+    }
+}
