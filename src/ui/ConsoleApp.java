@@ -42,7 +42,6 @@ public class ConsoleApp {
         System.out.println("Enter role (ADMIN, MANAGER, USER):");
         String role = scanner.nextLine().toUpperCase();
 
-        // Add or get user from DB
         currentUser = userService.addOrGetUser(username, role);
         System.out.println("Logged in as " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
     }
@@ -131,7 +130,6 @@ public class ConsoleApp {
         System.out.println("Stock:");
         int stock = Integer.parseInt(scanner.nextLine());
 
-        // Check if category exists in DB
         Category category = categoryService.getCategoryByName(categoryName);
         if (category == null) {
             category = categoryService.addCategory(categoryName);
