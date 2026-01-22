@@ -1,57 +1,38 @@
-package src.service;
+package service;
 
-import models.*;
+import database.DBConnection;
+import models.Book;
+import models.Order;
+import models.OrderItem;
+import models.User;
 
-import java.time.LocalDate;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
 public class OrderService {
-    private List<Order> orders = new ArrayList<>();
-    private Long orderIdCounter = 1L;
 
-    public Order createOrder(User user, Map<Book, Integer> books) {
-        if (books.isEmpty()) throw new RuntimeException("No books to order");
+    public Order createOrder(User user, List<OrderItem> items) {
+        String sqlOrder = "INSERT INTO orders (user_id) VALUES (?) RETURNING id";
+        String sqlItem = "INSERT INTO order_items (order_id, book_id, quantity) VALUES (?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmtOrder = conn.prepareStatement(sqlOrder);
+             PreparedStatement stmtItem = conn.prepareStatement(sqlItem)) {
 
-        double totalPrice = 0;
-        for (Map.Entry<Book, Integer> entry : books.entrySet()) {
-            Book book = entry.getKey();
-            int quantity = entry.getValue();
+            stmtOrder.setLong(1, user.getId());
+            ResultSet rs = stmtOrder.executeQuery();
+            if (rs.next()) {
+                long orderId = rs.getLong(1);
+                for (OrderItem item : items) {
+                    stmtItem.setLong(1, orderId);
+                    stmtItem.setLong(2, item.getBook().getId());
+                    stmtItem.setInt(3, item.getQuantity());
+                    stmtItem.executeUpdate();
+                }
+                return new Order(orderId, user, items);
+            }
 
-            if (book.getStock() < quantity)
-                throw new RuntimeException("Not enough books: " + book.getTitle());
-
-            totalPrice += book.getPrice() * quantity;
-        }
-
-        Order order = new Order();
-        order.setId(orderIdCounter++);
-        order.setUser(user);
-        order.setOrderDate(LocalDate.now());
-        order.setTotalPrice(totalPrice);
-
-        List<OrderItem> items = new ArrayList<>();
-        for (Map.Entry<Book, Integer> entry : books.entrySet()) {
-            Book book = entry.getKey();
-            int quantity = entry.getValue();
-
-            OrderItem item = new OrderItem();
-            item.setBook(book);
-            item.setQuantity(quantity);
-            items.add(item);
-
-            book.setStock(book.getStock() - quantity);
-        }
-        order.setItems(items);
-        orders.add(order);
-        return order;
-    }
-
-    public List<Order> findOrdersByUser(User user) {
-        List<Order> result = new ArrayList<>();
-        for (Order o : orders) {
-            if (o.getUser().equals(user)) result.add(o);
-        }
-        return result;
+        } catch (SQLException e) { e.printStackTrace(); }
+        return null;
     }
 }
