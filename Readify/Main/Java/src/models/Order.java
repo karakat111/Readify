@@ -1,33 +1,36 @@
-package src.models;
+package models;
 
-import jakarta.persistence.*;
-import java.time.LocalDate;
 import java.util.List;
 
-@Entity
-@Table(name = "orders")
 public class Order {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    private LocalDate orderDate;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    @OneToMany(mappedBy = "order")
     private List<OrderItem> items;
 
+    public Order(Long id, User user, List<OrderItem> items) {
+        if(user == null) throw new IllegalArgumentException("User cannot be null");
+        if(items == null || items.isEmpty()) throw new IllegalArgumentException("Order must have items");
+        this.id = id;
+        this.user = user;
+        this.items = items;
+    }
+
     public Long getId() { return id; }
-
-    public LocalDate getOrderDate() { return orderDate; }
-    public void setOrderDate(LocalDate orderDate) { this.orderDate = orderDate; }
-
     public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public List<OrderItem> getItems() { return items; }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Order ID: ").append(id)
+                .append("\nBuyer: ").append(user.getUsername())
+                .append("\nItems:\n");
+        items.forEach(item -> sb.append(" - ").append(item).append("\n"));
+        double total = items.stream()
+                .mapToDouble(i -> i.getBook().getPrice() * i.getQuantity())
+                .sum();
+        sb.append("Total: ").append(total);
+        return sb.toString();
+    }
 }
 
