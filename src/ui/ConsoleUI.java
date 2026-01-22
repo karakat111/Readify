@@ -1,107 +1,141 @@
 package ui;
 
 import models.Book;
+import models.Category;
 import models.User;
-import service.*;
+import service.BookService;
+import service.OrderService;
+import service.ReservationService;
+import service.CategoryService;
+import service.UserService;
 
-import java.util.*;
+import java.util.Scanner;
 
-public class ConsoleUI {
+public class ConsoleApp {
+    private Scanner scanner = new Scanner(System.in);
     private BookService bookService;
-    private OrderService orderService;
     private ReservationService reservationService;
-    private RentalService rentalService;
+    private OrderService orderService;
+    private CategoryService categoryService;
+    private UserService userService;
     private User currentUser;
 
-    private Scanner scanner = new Scanner(System.in);
-
-    public ConsoleUI(BookService bookService,
-                     OrderService orderService,
-                     ReservationService reservationService,
-                     RentalService rentalService,
-                     User currentUser) {
+    public ConsoleApp(BookService bookService, OrderService orderService,
+                      ReservationService reservationService, CategoryService categoryService,
+                      UserService userService) {
         this.bookService = bookService;
-        this.orderService = orderService;
         this.reservationService = reservationService;
-        this.rentalService = rentalService;
-        this.currentUser = currentUser;
+        this.orderService = orderService;
+        this.categoryService = categoryService;
+        this.userService = userService;
     }
 
     public void start() {
-        boolean running = true;
-        while (running) {
-            System.out.println("\n=== Readify Menu ===");
-            System.out.println("1. Просмотреть книги");
-            System.out.println("2. Купить книгу");
-            System.out.println("3. Забронировать книгу");
-            System.out.println("4. Взять книгу в прокат");
-            System.out.println("0. Выйти");
-            System.out.print("Выберите: ");
-            int choice = scanner.nextInt();
-            scanner.nextLine();
+        System.out.println("=== Welcome to Readify ===");
+        login();
+        mainMenu();
+    }
 
+    private void login() {
+        System.out.println("Enter username:");
+        String username = scanner.nextLine();
+        System.out.println("Enter role (ADMIN, MANAGER, USER):");
+        String role = scanner.nextLine().toUpperCase();
+
+        currentUser = userService.addOrGetUser(username, role);
+        System.out.println("Logged in as " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
+    }
+
+    private void mainMenu() {
+        while (true) {
+            System.out.println("\n1.List books 2.Rent 3.Reserve 4.Add Book 5.Exit");
+            String choice = scanner.nextLine();
             switch (choice) {
-                case 1 -> showBooks();
-                case 2 -> buyBook();
-                case 3 -> reserveBook();
-                case 4 -> rentBook();
-                case 0 -> running = false;
-                default -> System.out.println("Неверный выбор!");
+                case "1" -> bookService.getAllBooks().forEach(System.out::println);
+                case "2" -> rentBook();
+                case "3" -> reserveBook();
+                case "4" -> addBook();
+                case "5" -> {
+                    System.out.println("Bye!");
+                    return;
+                }
+                default -> System.out.println("Invalid option");
             }
         }
     }
 
-    private void showBooks() {
-        System.out.println("\nДоступные книги:");
-        for (Book b : bookService.getAllBooks()) {
-            System.out.println(b.getId() + ". " + b.getTitle() + " | Автор: " + b.getAuthor() +
-                    " | Жанр: " + b.getGenre() + " | Цена: " + b.getPrice() +
-                    " | Остаток: " + b.getStock());
+    private void rentBook() {
+        if (!currentUser.canRent()) {
+            System.out.println("No permission to rent books.");
+            return;
         }
-    }
 
-    private void buyBook() {
-        System.out.print("Введите ID книги для покупки: ");
-        Long id = scanner.nextLong();
-        scanner.nextLine();
-        Book book = bookService.findById(id);
+        System.out.println("Enter Book ID:");
+        long id = Long.parseLong(scanner.nextLine());
+        Book book = bookService.getBookById(id);
+
         if (book == null) {
-            System.out.println("Книга не найдена!");
+            System.out.println("Book not found!");
             return;
         }
-        if (book.getStock() < 1) {
-            System.out.println("Книга закончилась!");
-            return;
+
+        System.out.println("Days to rent:");
+        int days = Integer.parseInt(scanner.nextLine());
+
+        try {
+            reservationService.rentBook(currentUser, book, days);
+            System.out.println("Book rented!");
+        } catch (RuntimeException e) {
+            System.out.println("Error: " + e.getMessage());
         }
-        Map<Book, Integer> map = new HashMap<>();
-        map.put(book, 1);
-        orderService.createOrder(currentUser, map);
-        System.out.println("Книга куплена!");
     }
 
     private void reserveBook() {
-        System.out.print("Введите ID книги для брони: ");
-        Long id = scanner.nextLong();
-        scanner.nextLine();
-        Book book = bookService.findById(id);
-        if (book == null || book.getStock() < 1) {
-            System.out.println("Книга недоступна!");
+        if (!currentUser.canReserve()) {
+            System.out.println("No permission to reserve books.");
             return;
         }
-        reservationService.reserveBook(currentUser, book, 3);
-        System.out.println("Книга забронирована на 3 дня!");
+
+        System.out.println("Enter Book ID:");
+        long id = Long.parseLong(scanner.nextLine());
+        Book book = bookService.getBookById(id);
+
+        if (book == null) {
+            System.out.println("Book not found!");
+            return;
+        }
+
+        try {
+            reservationService.reserveBook(currentUser, book);
+            System.out.println("Book reserved!");
+        } catch (RuntimeException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
-    private void rentBook() {
-        System.out.print("Введите ID книги для проката: ");
-        Long id = scanner.nextLong();
-        scanner.nextLine();
-        Book book = bookService.findById(id);
-        if (book == null || book.getStock() < 1) {
-            System.out.println("Книга недоступна!");
+    private void addBook() {
+        if (!currentUser.isAdminOrManager()) {
+            System.out.println("No permission to add books.");
             return;
         }
-        rentalService.rentBook(currentUser, book, 7);
-        System.out.println("Книга взята в прокат на 7 дней!");
+
+        System.out.println("Title:");
+        String title = scanner.nextLine();
+        System.out.println("Author:");
+        String author = scanner.nextLine();
+        System.out.println("Category:");
+        String categoryName = scanner.nextLine();
+        System.out.println("Price:");
+        double price = Double.parseDouble(scanner.nextLine());
+        System.out.println("Stock:");
+        int stock = Integer.parseInt(scanner.nextLine());
+
+        Category category = categoryService.getCategoryByName(categoryName);
+        if (category == null) {
+            category = categoryService.addCategory(categoryName);
+        }
+
+        bookService.addBook(title, author, category, price, stock);
+        System.out.println("Book added!");
     }
 }
