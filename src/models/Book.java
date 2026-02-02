@@ -33,4 +33,3 @@ public class Book {
                 id, title, author, category.getName(), price, stock);
     }
 }
-
