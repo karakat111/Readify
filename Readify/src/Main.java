@@ -3,7 +3,6 @@ import service.OrderService;
 import service.ReservationService;
 import service.CategoryService;
 import service.UserService;
-import ui.ConsoleApp;
 
 public class Main {
     public static void main(String[] args) {
